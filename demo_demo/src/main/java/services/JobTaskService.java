@@ -1,0 +1,197 @@
+package services;
+
+import com.example.demoController.MarkJobCompleteResponse;
+import com.mongodb.*;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Sorts;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.springframework.stereotype.Service;
+
+import models.Jobs;
+import models.JobsModel;
+import models.MarkJobCompleteRequest;
+import models.AddJobRequest;
+import models.AddJobResponse;
+import models.AddTaskReq;
+import models.AddTaskResponse;
+import models.GetTasksRequest;
+import models.JobTasks;
+import models.JobTasksModel;
+
+
+@Service
+public class JobTaskService {
+	String port = "1433";
+	String pass = "Curtis123";
+	String userName = "Curtis";
+	String databaseName = "master";
+	String ip = "localhost";
+	String hostName = "localhost";
+    String connectionUrl = "mongodb://localhost:27017";
+    private String getJobs = "Select * from Jobs where groupId = ?";
+    private String addJob = "Insert into Jobs (Name, GroupId, JobId, refreshRate, price, nextRefreshDate, jobStatus) Values (?,?,?,?,?,  GETDATE() + ?,?)";
+    private String markJobComplete = "update Jobs set jobStatus = 'DONE', lastCompletedOn = GETDATE(), nextRefreshDate = (GETDATE() + ?) where jobId = ?";
+    private String storeJobComplete = "Insert into Job_Storage (jobCompletionId, jobId, dateOfCompletion, stillCompleted) values (?,?,GETDATE(),?)";
+	String userDataBaseName = "Curtis";
+
+    //Used to get the list of jobs associated with a bussiness Code
+    // TODO needs to sort by date. Also give manager access to all jobs. 
+    public Jobs getJobs(String groupId, String personId) {
+    	Connection connection = null;
+    	try {
+    	String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
+		System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
+		connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
+		if (connection != null) {
+			PreparedStatement ps = connection.prepareStatement(getJobs);
+			ps.setString(1, groupId);
+			ResultSet result = ps.executeQuery();
+    	
+			List<JobsModel> jobListModel = null;
+			Jobs jobsModel = new Jobs();
+			List<JobTasks> needsList = null;
+			jobListModel = new ArrayList();
+			while (result.next()) {
+    		jobListModel.add(JobsModel.builder()
+    			.jobName(result.getString("name"))
+    			.jobId(result.getString("jobId"))
+    			.refreshRate(result.getInt("refreshRate"))
+    			.jobStatus(result.getString("jobStatus")).build());
+			}	    	
+			connection.close();
+			jobsModel.setJobInfo(jobListModel);   
+			return jobsModel;
+			}
+    	} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	Jobs jobsModel = new Jobs();
+    	jobsModel.setStatus("failed");
+		return jobsModel;
+    }
+    
+    public JobTasksModel getTask(GetTasksRequest req) {
+    	try {
+    	com.mongodb.client.MongoClient client = MongoClients.create("mongodb://localhost:27017");
+    	MongoDatabase database = client.getDatabase("PeopleApplication");
+    	MongoCollection<Document> collection = database.getCollection("Tasks");
+    	BasicDBObject query = new BasicDBObject();
+    	query.append("jobId", req.getJobId());
+    	FindIterable<Document> results = collection.find(query).sort(Sorts.ascending("name"));
+    	//FindIterable<Document> results = collection.find(new BasicDBObject("groupId", userId)).sort(Sorts.ascending("name"));
+  
+    	JobTasksModel jobTasksToReturn = new JobTasksModel();
+    	List<JobTasks> jobTasksList = new ArrayList<>();
+    	for (Document result : results) {
+    	  	Date date = new Date();
+    		jobTasksList.add(JobTasks.builder()
+				.task(result.getString("task").toString())
+				.taskDescription(result.getString("description"))
+				.taskMongoId(result.get("_id").toString())
+				.taskStatus(result.getString("taskStatus")).build()); 	
+    	}
+    	jobTasksToReturn.setJobTasks(jobTasksList);
+    	return jobTasksToReturn; 
+    	
+    	}catch(MongoException e) {
+    		e.printStackTrace();
+    		return null;
+    	}
+    }
+    
+    public AddJobResponse addJob(AddJobRequest req) {
+    	AddJobResponse addJobResponse = new AddJobResponse();
+        Connection connection = null;
+        try {
+       
+        	String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
+        	System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
+        	connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
+        	if (connection != null) {
+        	
+        		PreparedStatement ps = connection.prepareStatement(addJob);
+    			ps.setString(1, req.getJobName());
+    			ps.setString(2, req.getGroupId());
+    			ps.setString(3, UUID.randomUUID().toString());
+    			ps.setInt(4, req.getRefreshRate());
+    			ps.setInt(5, req.getJobCost());
+    			ps.setInt(6, req.getRefreshRate());
+    			ps.setString(7, req.getJobStatus());
+    			ps.execute();
+    			addJobResponse.setStatus("OK");
+        	}
+        } catch (SQLException e) {
+    			// TODO Auto-generated catch block
+    		e.printStackTrace();
+    	}
+        return addJobResponse;
+    }
+        
+    
+    public AddTaskResponse addTask (AddTaskReq req) {
+    	AddTaskResponse resp = new AddTaskResponse();
+    	try {
+    	com.mongodb.client.MongoClient client = MongoClients.create("mongodb://localhost:27017");
+    	MongoDatabase database = client.getDatabase("PeopleApplication");
+    	MongoCollection<Document> collection = database.getCollection("Tasks");
+    	Document document = new Document();
+    	document.put("task", req.getTaskName());
+    	document.put("description", req.getTaskDescription());
+    	document.put("jobId",req.getJobId());
+    	document.put("refreshRate", req.getRefreshRate());
+    	document.put("taskStatus", req.getTaskStatus());
+    	collection.insertOne(document);
+    	resp.setStatus("OK");
+		return resp;
+    }catch(MongoException e) {
+    	resp.setStatus(e.toString());
+    	return resp;
+    	}
+    }
+
+	public MarkJobCompleteResponse markJobComplete(MarkJobCompleteRequest req) {
+		MarkJobCompleteResponse markJobCompleteResponse = new MarkJobCompleteResponse();
+        Connection connection = null;
+        try {
+       
+        	String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
+        	System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
+        	connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
+        	if (connection != null) {
+            	
+        		PreparedStatement ps = connection.prepareStatement(markJobComplete);
+        		ps.setInt(1, req.getRefreshRate());
+        		ps.setString(2, req.getJobId());   			
+    			ps.execute();
+    			
+    			PreparedStatement ps2 = connection.prepareStatement(storeJobComplete);
+    			ps2.setString(1, UUID.randomUUID().toString());
+    			ps2.setString(2, req.getJobId());
+    			ps2.setString(3, "DONE");
+    			ps2.execute();
+    			connection.close();
+        	}
+        	markJobCompleteResponse.setStatus("Good");
+        }catch(SQLException e) {
+        	e.printStackTrace();
+        }
+		return markJobCompleteResponse;
+	}
+}
