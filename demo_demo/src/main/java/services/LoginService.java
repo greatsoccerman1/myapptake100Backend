@@ -43,7 +43,8 @@ public class LoginService {
     String connectionUrl = "mongodb://localhost:27017";
 	String userId;
 	UserLoginModel userLoginModel = null;
-	private String loginCheck = "Select * from Groups where userName = ? AND password = ?";
+	private String loginCheck = "Select * from Users where userName = ? AND password = ?";
+	private String getGroups = "Select * from Groups where userId = ?";
 	private String registerNewAccount = "Insert into Groups (Name, GroupName, Password, Userid, GroupId, UserName) VALUES (?,?,?,?,?,?)";
 
 	public UserLoginModel getUserLogin(String username, String password) {
@@ -54,10 +55,11 @@ public class LoginService {
 			// String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port +
 			// ";databasename=" + databaseName + ";user=" + userName + ";password=" + pass +
 			// ";";
-			String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
+		    String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
 			System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
 			connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
 			userLoginModel = new UserLoginModel();
+			ArrayList<groupInfo> groupInfoList = new ArrayList<>();
 
 			if (connection != null) {
 				PreparedStatement ps = connection.prepareStatement(loginCheck);
@@ -68,20 +70,30 @@ public class LoginService {
 				if (result.next()) {
 					userLoginModel.setUserName(result.getString("Name"));
 					userLoginModel.setUserId(result.getString("UserId"));
-					connection.close();
-//	            		return userLoginModel;
-				} else {
-					return null;
+					
+					PreparedStatement ps2 = connection.prepareStatement(getGroups);
+					ps2.setString(1, userLoginModel.getUserId());
+					ResultSet result2 = ps2.executeQuery();
+					while (result2.next()){
+					  ArrayList<groupInfo> tempGroupInfo = new ArrayList<>();
+				      String groupName = result2.getString("GroupName");
+					  String groupId = result2.getString("GroupId");
+					  String groupOwnerId = result2.getString("GroupOwner");
+					  tempGroupInfo.add(groupInfo.builder()
+					 	.groupName(groupName)
+						.groupCode(groupId)
+						.groupOwnerId(groupOwnerId).build());
+						groupInfoList.addAll(tempGroupInfo);
+		    		  }
+					  userLoginModel.setGroupInfo(groupInfoList);
 				}
+			connection.close();
+			return userLoginModel;
 			} else {
 				return null;
-			}
+				}
 		} catch (SQLException e) {
 			e.printStackTrace();
-		}
-
-		if (userLoginModel != null) {
-			getGroupsForPerson(userLoginModel.getUserId(), userLoginModel);
 		}
 
 		return userLoginModel;

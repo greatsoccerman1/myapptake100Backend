@@ -32,7 +32,7 @@ public class GroupMemeberService {
 	String pass = "Curtis123";
 	String userName = "Curtis";
 	String databaseName = "master";
-	String ip = "192.168.131.148";
+	String ip = "localhost";
 	String hostName = "localhost";
     String connectionUrl = "mongodb://localhost:27017";
 	String userDataBaseName = "Curtis";
