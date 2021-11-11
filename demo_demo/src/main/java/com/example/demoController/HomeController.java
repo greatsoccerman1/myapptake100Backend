@@ -1,5 +1,6 @@
 package com.example.demoController;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,8 @@ import models.AddTaskReq;
 import models.AddTaskResponse;
 import models.DeleteGroupMemberRequest;
 import models.DeleteGroupMemberResponse;
+import models.GetGroupMemberInfoRequest;
+import models.GetGroupMemberInfoResponse;
 import models.GetGroupMembersRequest;
 import models.GetGroupMembersResponse;
 import models.GetTasksRequest;
@@ -27,6 +30,7 @@ import models.Jobs;
 import models.MarkJobCompleteRequest;
 import models.RegisterNewAccountRequest;
 import models.RegisterNewAccountResponse;
+import models.RemoveJobResponse;
 import models.RemoveNeed;
 import models.UserLoginModel;
 import models.productModel;
@@ -93,7 +97,7 @@ public class HomeController {
 	}
 	
 	@PostMapping("users/deleteGroupMembers")
-	public DeleteGroupMemberResponse deleteGroupMembers(@RequestBody DeleteGroupMemberRequest req) {
+	public DeleteGroupMemberResponse deleteGroupMembers(@RequestBody DeleteGroupMemberRequest req) throws SQLException {
 		return groupMememberService.deleteGroupMembers(req);
 	}
 	
@@ -132,6 +136,15 @@ public class HomeController {
 		return refreshService.refresh();
 	}
 	
+	@PostMapping("users/removeJob")
+	public RemoveJobResponse addJob(@PathVariable("groupId")String groupId, @PathVariable("jobId")String jobId) {
+		return jobTaskService.removeJob(groupId, jobId);
+	}
+	
+	@GetMapping("user/getGroupMemberInfo")
+	public GetGroupMemberInfoResponse getGroupMemberInfo(@RequestBody GetGroupMemberInfoRequest req) throws SQLException{
+		return groupMememberService.getGroupInfo(req);
+	}
 	/* q@GetMapping("users/removeGroupMemember")
 	public RemoveGroupMememberResponse removeGroupMember(@RequestBody RemoveGroupMememberRequest req) {
 		return addGroupMememberService.addGroupMember(req);

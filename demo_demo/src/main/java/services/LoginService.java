@@ -45,16 +45,11 @@ public class LoginService {
 	UserLoginModel userLoginModel = null;
 	private String loginCheck = "Select * from Users where userName = ? AND password = ?";
 	private String getGroups = "Select * from Groups where userId = ?";
-	private String registerNewAccount = "Insert into Groups (Name, GroupName, Password, Userid, GroupId, UserName) VALUES (?,?,?,?,?,?)";
+	private String registerNewAccount = "Insert into Users (Name, GroupName, Password, Userid, GroupId, UserName) VALUES (?,?,?,?,?,?)";
 
 	public UserLoginModel getUserLogin(String username, String password) {
 		Connection connection = null;
 		try {
-			// Class.forName("net.sourceforge.jtds.jdbc.Driver");
-
-			// String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port +
-			// ";databasename=" + databaseName + ";user=" + userName + ";password=" + pass +
-			// ";";
 		    String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
 			System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
 			connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
