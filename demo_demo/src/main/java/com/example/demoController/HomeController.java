@@ -105,10 +105,9 @@ public class HomeController {
 	public RemoveNeed removeNeed(@PathVariable("mongoId") String mongoId) throws ClassNotFoundException{
 		return needsController.removeNeed(mongoId);
 	}
-	
-	@GetMapping("users/markJobComplete/{mongoId}")
-	public RemoveNeed markJobComplete(@PathVariable("mongoId") String mongoId) throws ClassNotFoundException{
-		return needsController.markJobComplete(mongoId);
+	@PostMapping("users/markJobInComplete")
+	public MarkJobCompleteResponse markJobInComplete(@RequestBody MarkJobCompleteRequest req) {
+		return jobTaskService.markJobInComplete(req);
 	}
 	
 	@PostMapping("users/registerNewAccount")
@@ -126,7 +125,7 @@ public class HomeController {
 		return jobTaskService.addTask(req);
 	}
 	
-	@PostMapping("user/markJobComplete")
+	@PostMapping("users/markJobComplete")
 	public MarkJobCompleteResponse markJobComplete(@RequestBody MarkJobCompleteRequest req) {
 		return jobTaskService.markJobComplete(req);
 	}
@@ -141,7 +140,7 @@ public class HomeController {
 		return jobTaskService.removeJob(groupId, jobId);
 	}
 	
-	@GetMapping("user/getGroupMemberInfo")
+	@PostMapping("user/getGroupMemberInfo")
 	public GetGroupMemberInfoResponse getGroupMemberInfo(@RequestBody GetGroupMemberInfoRequest req) throws SQLException{
 		return groupMememberService.getGroupInfo(req);
 	}

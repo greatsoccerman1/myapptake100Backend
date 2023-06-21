@@ -45,12 +45,14 @@ public class GroupMemeberService {
 	GroupMember groupMemberModel = null;
 	private final String getGroupMembersQuery = "Select * from groupMembers where GroupId = ?";
 	private final String deleteGroupMemberQuery = "Delete From groupMembers where GroupId = ? AND MemberId = ?";
-	private final String addGroupMemberQuery = "Insert into groupMembers (GroupId, MemberId, First_Name, Last_Name) VALUES (?,?,?,?)";
-	private final String getGroupMemberInfo = "Select * from CompletedJobs where personId = ?";
+	private final String checkForAccount = "Select * from Users where userId = ?";
+	private final String addGroupMemberQuery = "Insert into groupMembers (GroupId, MemberId, First_Name, Last_Name, UserName, Role, GroupName) VALUES (?,?,?,?,?,?,?)";
+	private final String getGroupMemberInfo = "Select * from CompletedJobs where personId = ? AND dateOfCompletion >= CAST(? AS date) AND dateOfCompletion <= CAST(? AS date) AND stillCompleted = 'DONE';";
 	Logger logger = LogManager.getLogger(GroupMemeberService.class);
 	
 	public AddGroupMememberResponse addGroupMember(AddGroupMememberRequest req) {
 		AddGroupMememberResponse addGroupMembersResponse = new AddGroupMememberResponse();
+		logger.atInfo().log("AddGroupMememberRequest: " + req);
 		
 		Connection connection = null;
         UUID uuid = UUID.randomUUID();
@@ -62,21 +64,35 @@ public class GroupMemeberService {
 		try {
 			connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
 			if (connection != null) {
-				PreparedStatement ps = connection.prepareStatement(addGroupMemberQuery);
-				ps.setString(1, req.getGroupId());
-				//ps.setString(1, groupIdString);
-				ps.setString(2, uuidAsString);
-				ps.setString(3, req.getFirstName());
-				//ps.setString(3, firstNameToSend);
-				ps.setString(4, req.getLastName());
-				//ps.setString(4, lastNameToSend);
-				ps.executeQuery();
+				PreparedStatement checkPs = connection.prepareStatement(checkForAccount);
+				
+				checkPs.setString(1, req.getUserName());
+				ResultSet rs = checkPs.executeQuery();
+				
+			    if (rs != null) {;
+					PreparedStatement ps = connection.prepareStatement(addGroupMemberQuery);
+					if (req.isNewGroup()) {
+						req.setGroupId(UUID.randomUUID().toString());
+						req.setRole("admin");
+					}
+					ps.setString(1, req.getGroupId());
+					ps.setString(2, uuidAsString);
+					ps.setString(3, req.getFirstName());
+					ps.setString(4, req.getLastName());
+					ps.setString(5, req.getUserName());
+					ps.setString(6, req.getRole());
+					ps.setString(7, req.getGroupName());
+					ps.executeQuery();
+					addGroupMembersResponse.setStatus("Good");
+			    }else {
+			    	addGroupMembersResponse.setStatus("No UserName");
+			    }
+				connection.close();
 			}
 		}catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		addGroupMembersResponse.setStatus("Good");
 		return addGroupMembersResponse;
 	}
 
@@ -101,7 +117,6 @@ public class GroupMemeberService {
 						.firstName(result.getString("First_Name"))
 						.lastName(result.getString("Last_Name"))
 						.memberId(result.getString("MemberId")).build());
-//	            		return userLoginModel;
 				}
 				 connection.close();
 			} else {
@@ -155,7 +170,9 @@ public class GroupMemeberService {
 			if (connection != null)
 			{
 				PreparedStatement ps = connection.prepareStatement(getGroupMemberInfo);
-				ps.setString(1, req.getPersonId());
+				ps.setString(1, req.getInfoForPersonId());
+				ps.setString(2, req.getStartEarningDate());
+				ps.setString(3, req.getEndEarningDate());
 				ResultSet result = ps.executeQuery();
 				while (result.next()) {
 					totalAmount = totalAmount.add(result.getBigDecimal("price"));

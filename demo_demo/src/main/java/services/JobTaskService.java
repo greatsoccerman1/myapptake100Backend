@@ -11,6 +11,7 @@ import com.mongodb.client.model.Sorts;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.PseudoColumnUsage;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -37,6 +38,8 @@ import models.AddTaskResponse;
 import models.GetTasksRequest;
 import models.JobTasks;
 import models.JobTasksModel;
+
+import org.apache.catalina.startup.WebappServiceLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -51,7 +54,7 @@ public class JobTaskService {
     String connectionUrl = "mongodb://localhost:27017";
     private String getJobs = "Select * from Jobs where groupId = ?";
     private String addJob = "Insert into Jobs (Name, GroupId, JobId, refreshRate, price, nextRefreshDate, jobStatus) Values (?,?,?,?,?,  GETDATE() + ?,?)";
-    private String markJobComplete = "update Jobs set jobStatus = 'DONE', lastCompletedOn = GETDATE(), nextRefreshDate = (GETDATE() + ?) where jobId = ?";
+    private String markJobComplete = "update Jobs set jobStatus = ?, lastCompletedOn = GETDATE(), nextRefreshDate = (GETDATE() + ?) where jobId = ?";
     private String storeJobComplete = "Insert into CompletedJobs (jobCompletionId, jobId, dateOfCompletion, stillCompleted,price, personId, updateDate) values (?,?,GETDATE(),?,?,?,GetDate())";
     private String removeJob = "Delete from Jobs where jobId = ? AND groupId = ?";
 	String userDataBaseName = "Curtis";
@@ -190,20 +193,53 @@ public class JobTaskService {
         	if (connection != null) {
             	
         		PreparedStatement ps = connection.prepareStatement(markJobComplete);
-        		ps.setInt(1, req.getRefreshRate());
-        		ps.setString(2, req.getJobId());   			
+        		ps.setString(1, req.getJobStatus());
+        		ps.setInt(2, req.getRefreshRate());
+        		ps.setString(3, req.getJobId());   			
     			ps.execute();
     			
     			PreparedStatement ps2 = connection.prepareStatement(storeJobComplete);
     			ps2.setString(1, UUID.randomUUID().toString());
     			ps2.setString(2, req.getJobId());
-    			ps2.setString(3, "DONE");
+    			ps2.setString(3, req.getJobStatus());
     			ps2.setBigDecimal(4, req.getPrice());
     			ps2.setString(5, req.getPersonId());
     			ps2.execute();
     			connection.close();
         	}
-        	markJobCompleteResponse.setStatus("Good");
+        	markJobCompleteResponse.setStatus("DONE");
+        }catch(SQLException e) {
+        	e.printStackTrace();
+        }
+		return markJobCompleteResponse;
+	}
+	
+	public MarkJobCompleteResponse markJobInComplete(MarkJobCompleteRequest req) {
+		MarkJobCompleteResponse markJobCompleteResponse = new MarkJobCompleteResponse();
+        Connection connection = null;
+        try {
+       
+        	String connectionUrl = "jdbc:sqlserver://" + ip + ":" + port + ";databasename=" + databaseName;
+        	System.out.print("DriverManager.getConnection(\"" + connectionUrl + "\")");
+        	connection = DriverManager.getConnection(connectionUrl, userDataBaseName, pass);
+        	if (connection != null) {
+            	
+        		PreparedStatement ps = connection.prepareStatement(markJobComplete);
+        		ps.setString(1, req.getJobStatus());
+        		ps.setInt(2, req.getRefreshRate());
+        		ps.setString(3, req.getJobId());   			
+    			ps.execute();
+    			
+    			PreparedStatement ps2 = connection.prepareStatement(storeJobComplete);
+    			ps2.setString(1, UUID.randomUUID().toString());
+    			ps2.setString(2, req.getJobId());
+    			ps2.setString(3, req.getJobStatus());
+    			ps2.setBigDecimal(4, req.getPrice());
+    			ps2.setString(5, req.getPersonId());
+    			ps2.execute();
+    			connection.close();
+        	}
+        	markJobCompleteResponse.setStatus("NOT DONE");
         }catch(SQLException e) {
         	e.printStackTrace();
         }

@@ -44,7 +44,7 @@ public class LoginService {
 	String userId;
 	UserLoginModel userLoginModel = null;
 	private String loginCheck = "Select * from Users where userName = ? AND password = ?";
-	private String getGroups = "Select * from Groups where userId = ?";
+	private String getGroups = "Select * from GroupMembers where userName = ?";
 	private String registerNewAccount = "Insert into Users (Name, GroupName, Password, Userid, GroupId, UserName) VALUES (?,?,?,?,?,?)";
 
 	public UserLoginModel getUserLogin(String username, String password) {
@@ -67,26 +67,29 @@ public class LoginService {
 					userLoginModel.setUserId(result.getString("UserId"));
 					
 					PreparedStatement ps2 = connection.prepareStatement(getGroups);
-					ps2.setString(1, userLoginModel.getUserId());
+					ps2.setString(1, username);
 					ResultSet result2 = ps2.executeQuery();
 					while (result2.next()){
 					  ArrayList<groupInfo> tempGroupInfo = new ArrayList<>();
 				      String groupName = result2.getString("GroupName");
 					  String groupId = result2.getString("GroupId");
-					  String groupOwnerId = result2.getString("GroupOwner");
+					  String role = result2.getString("Role");
 					  tempGroupInfo.add(groupInfo.builder()
 					 	.groupName(groupName)
 						.groupCode(groupId)
-						.groupOwnerId(groupOwnerId).build());
+						.role(role).build());
 						groupInfoList.addAll(tempGroupInfo);
 		    		  }
 					  userLoginModel.setGroupInfo(groupInfoList);
+					  userLoginModel.setStatus("Success");
+				}else {
+					userLoginModel.setStatus("NotFound");
 				}
 			connection.close();
 			return userLoginModel;
 			} else {
 				return null;
-				}
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -111,10 +114,10 @@ public class LoginService {
 				JSONObject person = geodata;
 				String groupName = person.getString("GroupName");
 				String groupCode = person.getString("GroupCode");
-				String groupOwnerId = person.getString("GroupOwnerId");
+				String role = person.getString("Role");
 
 				tempGroupInfo.add(groupInfo.builder().groupName(groupName).groupCode(groupCode)
-						.groupOwnerId(groupOwnerId).build());
+						.role(role).build());
 
 				groupInfoList.addAll(tempGroupInfo);
 			}
@@ -152,7 +155,7 @@ public class LoginService {
 		    	BasicDBObject list = new BasicDBObject();
 		    	List<groupInfo> groupToAddInfo = new ArrayList<groupInfo>();
 		    	groupToAddInfo.add(groupInfo.builder().groupName(req.getGroupName()).groupCode(groupId)
-		    			.groupOwnerId(userId).build());
+		    			.role(userId).build());
 		        query.put("PersonId", userId);
 		        
 		        

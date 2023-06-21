@@ -11,5 +11,5 @@ import lombok.ToString;
 public class groupInfo {
 	private String groupName;
 	private String groupCode;
-	private String groupOwnerId;
+	private String role;
 }

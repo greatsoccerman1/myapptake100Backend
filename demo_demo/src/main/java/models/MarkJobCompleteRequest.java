@@ -22,7 +22,7 @@ public class MarkJobCompleteRequest {
     private String jobId;
     private String groupId;
     private int refreshRate;
-    private String mongoId;
     private BigDecimal price;
     private String personId;
+    private String jobStatus;
 }

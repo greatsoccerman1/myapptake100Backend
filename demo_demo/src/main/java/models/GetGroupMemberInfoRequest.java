@@ -9,5 +9,7 @@ import lombok.ToString;
 
 @Getter @Setter @Builder @ToString @AllArgsConstructor @NoArgsConstructor
 public class GetGroupMemberInfoRequest {
-	private String personId;
+	private String infoForPersonId;
+	private String startEarningDate;
+	private String endEarningDate;
 }

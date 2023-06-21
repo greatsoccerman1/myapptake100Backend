@@ -17,6 +17,7 @@ import lombok.ToString;
 public class UserLoginModel {
 	private String userId;
 	private String userName;
+	private String status;
 	// private HashMap<String, String> groups;
 	private ArrayList<groupInfo> groupInfo;
 }

@@ -10,4 +10,5 @@ import lombok.*;
 @NoArgsConstructor
 public class MarkJobCompleteResponse {
     private String status;
+    private String successful;
 }
