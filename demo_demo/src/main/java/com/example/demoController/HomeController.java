@@ -19,6 +19,8 @@ import models.AddTaskReq;
 import models.AddTaskResponse;
 import models.DeleteGroupMemberRequest;
 import models.DeleteGroupMemberResponse;
+import models.EmployeeHistoryRequest;
+import models.EmployeeHistoryResponse;
 import models.GetGroupMemberInfoRequest;
 import models.GetGroupMemberInfoResponse;
 import models.GetGroupMembersRequest;
@@ -34,6 +36,7 @@ import models.RemoveJobResponse;
 import models.RemoveNeed;
 import models.UserLoginModel;
 import models.productModel;
+import services.EmployeeService;
 import services.GroupMemeberService;
 import services.LoginService;
 import services.NeedsController;
@@ -59,6 +62,8 @@ public class HomeController {
 	NeedsController needsController;
 	@Autowired
 	RefreshService refreshService;
+	@Autowired
+	EmployeeService employeeService;
 
 	
 	@GetMapping("/products")
@@ -143,6 +148,11 @@ public class HomeController {
 	@PostMapping("user/getGroupMemberInfo")
 	public GetGroupMemberInfoResponse getGroupMemberInfo(@RequestBody GetGroupMemberInfoRequest req) throws SQLException{
 		return groupMememberService.getGroupInfo(req);
+	}
+	
+	@PostMapping("user/getEmployeeHistory")
+	public EmployeeHistoryResponse getEmployeeHistory(@RequestBody EmployeeHistoryRequest req) throws SQLException{
+		return employeeService.getEmployeeHistory(req);
 	}
 	/* q@GetMapping("users/removeGroupMemember")
 	public RemoveGroupMememberResponse removeGroupMember(@RequestBody RemoveGroupMememberRequest req) {
